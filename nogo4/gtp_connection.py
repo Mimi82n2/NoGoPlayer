@@ -13,6 +13,7 @@ import numpy as np
 import re
 from sys import stdin, stdout, stderr
 from typing import Any, Callable, Dict, List, Tuple
+import signal
 
 from board_base import (
     is_black_white,
@@ -28,6 +29,10 @@ from board_base import (
 from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
+
+def signal_handler(signum, frame):
+    """Handle a timeout"""
+    raise TimeoutError("Timed out!")
 
 class GtpConnection:
     def __init__(self, go_engine: GoEngine, board: GoBoard, debug_mode: bool = False) -> None:
@@ -350,20 +355,32 @@ class GtpConnection:
 
     def genmove_cmd(self, args: List[str]) -> None:
         """ generate a move for color args[0] in {'b','w'} """
-        board_color = args[0].lower()
-        color = color_to_int(board_color)
-        move = self.go_engine.get_move(self.board, color)
-        if move is None:
-            self.respond('unknown')
-            return
+        signal.signal(signal.SIGALRM, signal_handler)
 
-        move_coord = point_to_coord(move, self.board.size)
-        move_as_string = format_point(move_coord)
-        if self.board.is_legal(move, color):
-            self.board.play_move(move, color)
-            self.respond(move_as_string)
-        else:
-            self.respond("Illegal move: {}".format(move_as_string))
+        # Set a timelimit for generating move
+        signal.alarm(29)
+        try:
+            while True:
+                pass
+
+        except TimeoutError:
+            # Play random move if out of time.
+            board_color = args[0].lower()
+            color = color_to_int(board_color)
+            move = self.go_engine.get_move(self.board, color)
+            if move is None:
+                self.respond('unknown')
+                return
+
+            move_coord = point_to_coord(move, self.board.size)
+            move_as_string = format_point(move_coord)
+            if self.board.is_legal(move, color):
+                self.board.play_move(move, color)
+                self.respond(move_as_string)
+            else:
+                self.respond("Illegal move: {}".format(move_as_string))
+
+        signal.alarm(0)
 
     def time_limit_cmd(self, args):
         '''
