@@ -81,18 +81,41 @@ class GoBoard(object):
 
         
         
-    def is_legal(self, point: GO_POINT, color: GO_COLOR) -> bool:
+    def is_legal_old(self, point: GO_POINT, color: GO_COLOR) -> bool:
         """
         Check whether it is legal for color to play on point
         This method tries to play the move on a temporary copy of the board.
         This prevents the board from being modified by the move
         """
+        # Original
         board_copy: GoBoard = self.copy()
-        can_play_move = board_copy.play_move(point, color)
+        can_play_move = board_copy.play_move(point, color)       
         return can_play_move
 
-        
-           
+    def is_legal(self, point: GO_POINT, color: GO_COLOR) -> bool:
+        # Don't copy board
+        if self.board[point] != EMPTY:
+            return False
+        # Play move
+        self.board[point] = color
+
+        neighbors = self._neighbors(point)
+        # Check for capturing
+        for nb in neighbors:
+            if self.board[nb] == opponent(color):
+                captured = self._detect_and_process_capture(nb)
+                if captured:
+                    self.board[point] = EMPTY
+                    return False
+        # Check for suicide
+        block = self._block_of(point)
+        if not self._has_liberty(block):
+            self.board[point] = EMPTY
+            return False
+        # Undo move
+        self.board[point] = EMPTY
+        return True
+
     def get_empty_points(self) -> np.ndarray:
         """
         Return:
@@ -210,7 +233,6 @@ class GoBoard(object):
             return False
             
         opp_color = opponent(color)
-        in_enemy_eye = self._is_surrounded(point, opp_color)
         self.board[point] = color
         neighbors = self._neighbors(point)
         
