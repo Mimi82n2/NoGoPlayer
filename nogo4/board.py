@@ -61,8 +61,27 @@ class GoBoard(object):
         self.maxpoint: int = board_array_size(size)
         self.board: np.ndarray[GO_POINT] = np.full(self.maxpoint, BORDER, dtype=GO_POINT)
         self._initialize_empty_points(self.board)
-        
-        
+        self._initialize_neighbors()
+
+    def _initialize_neighbors(self) -> None:
+        """
+        precompute neighbor array.
+        For each point on the board, store its list of on-the-board neighbors
+        """
+        self.neighbors: List[List[GO_POINT]] = []
+        for point in range(self.maxpoint):
+            if self.board[point] == BORDER:
+                self.neighbors.append([])
+            else:
+                self.neighbors.append(self._on_board_neighbors(GO_POINT(point)))     
+    
+    def _on_board_neighbors(self, point: GO_POINT) -> List:
+        nbs: List[GO_POINT] = []
+        for nb in self._neighbors(point):
+            if self.board[nb] != BORDER:
+                nbs.append(nb)
+        return nbs
+
     def copy(self) -> 'GoBoard':
         b = GoBoard(self.size)
         assert b.NS == self.NS
@@ -99,7 +118,7 @@ class GoBoard(object):
         # Play move
         self.board[point] = color
 
-        neighbors = self._neighbors(point)
+        neighbors = self.neighbors[point]
         # Check for capturing
         for nb in neighbors:
             if self.board[nb] == opponent(color):
@@ -163,7 +182,7 @@ class GoBoard(object):
         check whether empty point is surrounded by stones of color
         (or BORDER) neighbors
         """
-        for nb in self._neighbors(point):
+        for nb in self.neighbors[point]:
             nb_color = self.board[nb]
             if nb_color != BORDER and nb_color != color:
                 return False
@@ -182,7 +201,7 @@ class GoBoard(object):
     
     def _has_liberty(self, block: np.ndarray) -> bool:
         for stone in where1d(block):
-            for nb in self._neighbors(stone):
+            for nb in self.neighbors[stone]:
                 if self.board[nb] == EMPTY:
                     return True
         return False
@@ -240,7 +259,7 @@ class GoBoard(object):
             
         opp_color = opponent(color)
         self.board[point] = color
-        neighbors = self._neighbors(point)
+        neighbors = self.neighbors[point]
         
         #check for capturing
         for nb in neighbors:
@@ -265,13 +284,14 @@ class GoBoard(object):
     def neighbors_of_color(self, point: GO_POINT, color: GO_COLOR) -> List:
         """ List of neighbors of point of given color """
         nbc: List[GO_POINT] = []
-        for nb in self._neighbors(point):
+        for nb in self.neighbors[point]:
             if self.get_color(nb) == color:
                 nbc.append(nb)
         return nbc
 
     def _neighbors(self, point: GO_POINT) -> List:
         """ List of all four neighbors of the point """
+        print(point)
         return [point - 1, point + 1, point - self.NS, point + self.NS]
 
     def _diag_neighbors(self, point: GO_POINT) -> List:
