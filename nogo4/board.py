@@ -169,7 +169,7 @@ class GoBoard(object):
                 return False
         return True
 
-    def _has_liberty(self, block: np.ndarray) -> bool:
+    def _has_liberty_old(self, block: np.ndarray) -> bool:
         """
         Check if the given block has any liberty.
         block is a numpy boolean array
@@ -179,7 +179,13 @@ class GoBoard(object):
             if empty_nbs:
                 return True
         return False
-        
+    
+    def _has_liberty(self, block: np.ndarray) -> bool:
+        for stone in where1d(block):
+            for nb in self._neighbors(stone):
+                if self.board[nb] == EMPTY:
+                    return True
+        return False
         
     def _block_of(self, stone: GO_POINT) -> np.ndarray:
         """
