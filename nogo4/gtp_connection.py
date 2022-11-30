@@ -14,6 +14,7 @@ import re
 from sys import stdin, stdout, stderr
 from typing import Any, Callable, Dict, List, Tuple
 import signal
+import time
 
 from board_base import (
     is_black_white,
@@ -48,7 +49,9 @@ class GtpConnection:
         """
         self._debug_mode: bool = debug_mode
         self.go_engine = go_engine
+        self.table = {}
         self.board: GoBoard = board
+        self.timelimit = 10
         self.commands: Dict[str, Callable[[List[str]], None]] = {
             "protocol_version": self.protocol_version_cmd,
             "quit": self.quit_cmd,
@@ -65,6 +68,7 @@ class GtpConnection:
             "legal_moves": self.legal_moves_cmd,
             "gogui-rules_legal_moves": self.gogui_rules_legal_moves_cmd,
             "gogui-rules_final_result": self.gogui_rules_final_result_cmd,
+            "timelimit" : self.time_limit_cmd,
         }
 
         # argmap is used for argument checking
@@ -353,12 +357,12 @@ class GtpConnection:
     ==========================================================================
     """
 
-    def genmove_cmd(self, args: List[str]) -> None:
+    def genmove_cmd_original(self, args: List[str]) -> None:
         """ generate a move for color args[0] in {'b','w'} """
         signal.signal(signal.SIGALRM, signal_handler)
 
         # Set a timelimit for generating move
-        signal.alarm(29)
+        signal.alarm(self.timelimit-1)
         try:
             while True:
                 pass
@@ -382,6 +386,106 @@ class GtpConnection:
 
         signal.alarm(0)
 
+    
+    def genmove_cmd(self, args: List[str]) -> None:
+        # Genmove using negamax from assignment 2
+        """ generate a move for color args[0] in {'b','w'} """
+        signal.signal(signal.SIGALRM, signal_handler)
+
+        # Set a timelimit for generating move
+        signal.alarm(self.timelimit-1)
+        ins = self.board.copy()
+        try:
+            # Time the function
+            start = time.time()
+            self.gen_solve(args)
+            end = time.time()
+            print("Time taken: ", end - start)
+        except TimeoutError:
+            # Play random move if out of time.
+            self.board = ins
+            board_color = args[0].lower()
+            color = color_to_int(board_color)
+            move = self.go_engine.get_move(self.board, color)
+            if move is None:
+                self.respond('unknown')
+                return
+
+            move_coord = point_to_coord(move, self.board.size)
+            move_as_string = format_point(move_coord)
+            if self.board.is_legal(move, color):
+                self.board.play_move(move, color)
+                self.respond(move_as_string)
+            else:
+                self.respond("Illegal move: {}".format(move_as_string))
+
+        signal.alarm(0)
+
+    def gen_solve(self, args: List[str]) -> None:
+        self.code_from_board()
+        if self.board.current_player == 1:
+            current_color = 'b'
+            opponent_color = 'w'
+        else:
+            current_color = 'w'
+            opponent_color = 'b'
+        result = self.negamax()
+        #If current player is winner
+        if result:
+            legal_moves = GoBoardUtil.generate_legal_moves(self.board, self.board.current_player)
+            for move in legal_moves:
+                self.play_move_eff(move)
+                if self.table.get(self.code_from_board()) == current_color:
+                    self.respond("{}".format(format_point(point_to_coord(move, self.board.size)).lower()))
+                    return
+                self.board.board[move] = EMPTY
+                self.board.current_player = opponent(self.board.current_player)
+        # Winner is opponent
+        if result == False:
+            # Play a random move is opponent is winner
+            raise TimeoutError
+
+    def negamax(self) -> bool:
+        code = self.code_from_board()
+        result = self.table.get(code)
+        if result != None:
+            if self.board.current_player == 1 and result == 'b' or self.board.current_player == 2 and result == 'w':
+                return True
+            else:
+                return False
+        legal_moves = GoBoardUtil.generate_legal_moves(self.board, self.board.current_player)
+        if len(legal_moves) == 0:
+            if self.board.current_player == 1:
+                self.table[code] = 'w' 
+            else: 
+                self.table[code] = 'b' 
+            return False
+        for move in legal_moves:
+            #old = self.board.copy()
+            self.play_move_eff(move)
+            #self.board.play_move(move, self.board.current_player)
+            isWin = not self.negamax()
+            # Undo the move
+            self.board.board[move] = EMPTY
+            self.board.current_player = opponent(self.board.current_player)
+            #self.board = old
+            if (isWin):
+                if self.board.current_player == 1:
+                    self.table[code] = 'b' 
+                else: 
+                    self.table[code] = 'w' 
+                return True
+        if self.board.current_player == 1:
+             self.table[code] = 'w' 
+        else: 
+            self.table[code] = 'b' 
+        return False
+
+    def code_from_board(self):
+        
+        return int('1'+(''.join(map(str, self.board.board.tolist()))).replace("3",""))
+        #return hash(self.board.board.tostring())
+
     def time_limit_cmd(self, args):
         '''
         set time limit per move
@@ -389,6 +493,9 @@ class GtpConnection:
         self.timelimit = int(args[0])
         self.respond()
 
+    def play_move_eff(self, move):
+        self.board.board[move] = self.board.current_player
+        self.board.current_player = opponent(self.board.current_player)
     """
     ==========================================================================
     Assignment 4 - game-specific commands end here
