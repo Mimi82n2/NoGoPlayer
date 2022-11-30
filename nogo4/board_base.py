@@ -102,10 +102,6 @@ def coord_to_point(row: int, col: int, board_size: int) -> GO_POINT:
     This board is represented by the array
     [3,3,3,3,  3,0,0,0,  3,0,0,0,  3,0,0,0,  3,3,3,3,3]
     """
-    assert 1 <= row
-    assert row <= board_size
-    assert 1 <= col
-    assert col <= board_size
     NS = board_size + 1
     return GO_POINT(NS * row + col)
 

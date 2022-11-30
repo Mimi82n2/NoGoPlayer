@@ -515,7 +515,6 @@ def format_point(move: Tuple[int, int]) -> str:
     """
     Return move coordinates as a string such as 'A1'
     """
-    assert MAXSIZE <= 25
     column_letters = "ABCDEFGHJKLMNOPQRSTUVWXYZ"
     row, col = move
     return column_letters[col - 1] + str(row)
