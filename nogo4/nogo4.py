@@ -37,8 +37,7 @@ class NoGo:
         self.best_move = None
 
     def get_move(self, board: GoBoard, color: GO_COLOR) -> GO_POINT:
-        return GoBoardUtil.generate_random_move(board, color,
-                                                use_eye_filter=False)
+        return GoBoardUtil.generate_random_move(board, color)
 
 
     ################ Getters & Setters #########################
@@ -148,7 +147,7 @@ def play_game(board:GoBoard):
     while True:
         # play a random move for the current player
         color = board.current_player
-        move = GoBoardUtil.generate_random_move(board,color,use_eye_filter=False)
+        move = GoBoardUtil.generate_random_move(board,color)
         board.play_move(move, color)
 
         # current player is passing

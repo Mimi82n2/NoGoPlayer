@@ -5,7 +5,7 @@ Utility functions for Go board.
 
 import numpy as np
 import random
-from board_base import EMPTY, BLACK, WHITE, BORDER
+from board_base import EMPTY, BLACK, WHITE, BORDER, GO_COLOR
 from typing import List
 
 def is_black_white(color):

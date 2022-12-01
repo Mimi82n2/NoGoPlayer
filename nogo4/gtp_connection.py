@@ -420,12 +420,6 @@ class GtpConnection:
         board_color = args[0].lower()
         color = color_to_int(board_color)
 
-        
-        signal.alarm(self.timelimit)
-        self.sboard = self.board.copy()
-        move = self.go_engine.get_move_ucb(self.board, color)
-        self.board=self.sboard
-        signal.alarm(0)
         try:
             signal.alarm(self.timelimit)
             self.sboard = self.board.copy()
