@@ -31,9 +31,7 @@ from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
 
-def signal_handler(signum, frame):
-    """Handle a timeout"""
-    raise TimeoutError("Timed out!")
+
 
 class GtpConnection:
     def __init__(self, go_engine: GoEngine, board: GoBoard, debug_mode: bool = False) -> None:
@@ -52,6 +50,7 @@ class GtpConnection:
         self.table = {}
         self.board: GoBoard = board
         self.timelimit = 10
+        signal.signal(signal.SIGALRM, self.signal_handler)
         self.commands: Dict[str, Callable[[List[str]], None]] = {
             "protocol_version": self.protocol_version_cmd,
             "quit": self.quit_cmd,
@@ -359,10 +358,7 @@ class GtpConnection:
 
     def genmove_cmd_original(self, args: List[str]) -> None:
         """ generate a move for color args[0] in {'b','w'} """
-        signal.signal(signal.SIGALRM, signal_handler)
-
-        # Set a timelimit for generating move
-        signal.alarm(self.timelimit-1)
+        signal.alarm(self.timelimit)
         try:
             while True:
                 pass
@@ -387,13 +383,10 @@ class GtpConnection:
         signal.alarm(0)
 
     
-    def genmove_cmd(self, args: List[str]) -> None:
+    def genmove_cmd_nega(self, args: List[str]) -> None:
         # Genmove using negamax from assignment 2
         """ generate a move for color args[0] in {'b','w'} """
-        signal.signal(signal.SIGALRM, signal_handler)
-
-        # Set a timelimit for generating move
-        signal.alarm(self.timelimit-1)
+        signal.alarm(self.timelimit)
         ins = self.board.copy()
         try:
             # Time the function
@@ -420,6 +413,43 @@ class GtpConnection:
                 self.respond("Illegal move: {}".format(move_as_string))
 
         signal.alarm(0)
+
+    def genmove_cmd(self, args):
+        """ generate a move for color args[0] in {'b','w'} """
+        # Genmove using UCB from assignment 3
+        board_color = args[0].lower()
+        color = color_to_int(board_color)
+
+        
+        signal.alarm(self.timelimit)
+        self.sboard = self.board.copy()
+        move = self.go_engine.get_move_ucb(self.board, color)
+        self.board=self.sboard
+        signal.alarm(0)
+        try:
+            signal.alarm(self.timelimit)
+            self.sboard = self.board.copy()
+            move = self.go_engine.get_move_ucb(self.board, color)
+            self.board=self.sboard
+            signal.alarm(0)
+        except Exception as e:
+            # Time's up! Use the best move so far.
+            move=self.go_engine.get_best_move()
+
+
+        # no move to play on the board
+        if move is None:
+            self.respond('resign')
+            return
+
+        move_coord = point_to_coord(move, self.board.size)
+        move_as_string = format_point(move_coord)
+        if self.board.is_legal(move, color):
+            # play that move
+            self.board.play_move(move, color)
+            self.respond(move_as_string)
+        else:
+            self.respond("Illegal move: {}".format(move_as_string))    
 
     def gen_solve(self, args: List[str]) -> None:
         self.code_from_board()
@@ -496,6 +526,10 @@ class GtpConnection:
     def play_move_eff(self, move):
         self.board.board[move] = self.board.current_player
         self.board.current_player = opponent(self.board.current_player)
+    def signal_handler(self, signum, frame):
+        """Handle a timeout"""
+        self.board = self.sboard
+        raise TimeoutError("Timed out!")
     """
     ==========================================================================
     Assignment 4 - game-specific commands end here
