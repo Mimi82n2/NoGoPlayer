@@ -427,9 +427,7 @@ class GtpConnection:
             self.board=self.sboard
             signal.alarm(0)
         except Exception as e:
-            # Time's up! Use the best move so far.
             move=self.go_engine.get_best_move()
-
 
         # no move to play on the board
         if move is None:
@@ -437,13 +435,9 @@ class GtpConnection:
             return
 
         move_coord = point_to_coord(move, self.board.size)
-        move_as_string = format_point(move_coord)
-        if self.board.is_legal(move, color):
-            # play that move
-            self.board.play_move(move, color)
-            self.respond(move_as_string)
-        else:
-            self.respond("Illegal move: {}".format(move_as_string))    
+        move_as_string = format_point(move_coord)    
+        self.board.play_move(move, color)
+        self.respond(move_as_string)
 
     def gen_solve(self, args: List[str]) -> None:
         self.code_from_board()

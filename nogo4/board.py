@@ -87,8 +87,8 @@ class GoBoard(object):
 
     def is_legal(self, point: GO_POINT, color: GO_COLOR) -> bool:
         # Don't copy board
-        if self.board[point] != EMPTY:
-            return False
+        #if self.board[point] != EMPTY:
+        #    return False
         # Play move
         self.board[point] = color
 
@@ -96,8 +96,7 @@ class GoBoard(object):
         # Check for capturing
         for nb in neighbors:
             if self.board[nb] == opponent(color):
-                captured = self._detect_and_process_capture(nb)
-                if captured:
+                if self._detect_and_process_capture(nb):
                     self.board[point] = EMPTY
                     return False
         # Check for suicide

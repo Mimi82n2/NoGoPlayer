@@ -60,7 +60,7 @@ class GoBoardUtil(object):
     def generate_legal_moves(board, color):
         moves: np.ndarray[GO_POINT] = board.get_empty_points()
         legal_moves: List[GO_POINT] = []
-        
+        # Check board.is_legal on all moves
         for move in moves:
             if board.is_legal(move, color):
                 legal_moves.append(move)
