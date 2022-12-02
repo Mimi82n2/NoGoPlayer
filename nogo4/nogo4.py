@@ -15,7 +15,7 @@ class NoGo:
         GoEngine.__init__(self, "NoGo4", 1.0)
         self.name = "UCB"
         self.version = 1.0
-        self.sim = 200
+        self.sim = 10000
         self.C = 0.4
         self.best_move = None
 
