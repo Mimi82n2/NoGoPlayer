@@ -67,44 +67,26 @@ class GoBoardUtil(object):
         return legal_moves
 
     @staticmethod
-    def generate_random_move_old(board, color):
-        """
-        Generate a random move.
-        Return PASS if no move found
-
-        Arguments
-        ---------
-        board : np.array
-            a 1-d array representing the board
-        color : BLACK, WHITE
-            the color to generate the move for.
-        """
-        moves = GoBoardUtil.generate_legal_moves(board, color)
-        if (len(moves) == 0):
-            return None
-        # choose one legal move randomly
-        return random.choice(moves)
-
-    @staticmethod
     def generate_random_move(board, color):
         # New Random Move Generator
         moves: np.ndarray[GO_POINT] = board.get_empty_points()
-        np.random.shuffle(moves)
-        for move in moves:
+        # While moves is not empty
+        while moves.size > 0:
+            # idx of move to remove
+            idx = random.randint(0, moves.size - 1)
+            # Remove move from moves
+            move = moves[idx]
+            moves = np.delete(moves, idx)
+
             if board.is_legal(move, color):
                 return move
         return None
 
     @staticmethod
     def generate_random_moves(board, use_eye_filter):
-        """
-        Return a list of random (legal) moves with eye-filtering.
-        """
-
         color = board.current_player
         legal_moves = GoBoardUtil.generate_legal_moves(board, color)
         random.shuffle(legal_moves)
-
         return legal_moves
 
     @staticmethod
