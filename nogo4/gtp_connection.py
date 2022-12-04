@@ -1,13 +1,3 @@
-"""
-gtp_connection.py
-Module for playing games of Go using GoTextProtocol
-
-Cmput 455 sample code
-Written by Cmput 455 TA and Martin Mueller.
-Parts of this code were originally based on the gtp module
-in the Deep-Go project by Isaac Henrion and Amos Storkey
-at the University of Edinburgh.
-"""
 import traceback
 import numpy as np
 import re
@@ -31,20 +21,8 @@ from board import GoBoard
 from board_util import GoBoardUtil
 from engine import GoEngine
 
-
-
 class GtpConnection:
     def __init__(self, go_engine: GoEngine, board: GoBoard, debug_mode: bool = False) -> None:
-        """
-        Manage a GTP connection for a Go-playing engine
-
-        Parameters
-        ----------
-        go_engine:
-            a program that can reply to a set of GTP commandsbelow
-        board:
-            Represents the current board state.
-        """
         self._debug_mode: bool = debug_mode
         self.go_engine = go_engine
         self.table = {}
@@ -421,6 +399,7 @@ class GtpConnection:
         color = color_to_int(board_color)
 
         try:
+            # Reduce the time limit by 1 second to account for the time taken to run the UCB algorithm
             signal.alarm(self.timelimit)
             self.sboard = self.board.copy()
             move = self.go_engine.get_move_ucb(self.board, color)

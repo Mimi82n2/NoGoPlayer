@@ -1,14 +1,3 @@
-"""
-board.py
-
-Implements a basic Go board with functions to:
-- initialize to a given board size
-- check if a move is legal
-- play a move
-
-The board uses a 1-dimensional representation with padding
-"""
-
 import numpy as np
 from typing import List, Tuple
 from board_base import(
@@ -45,10 +34,6 @@ class GoBoard(object):
         self._initialize_neighbors()
 
     def _initialize_neighbors(self) -> None:
-        """
-        precompute neighbor array.
-        For each point on the board, store its list of on-the-board neighbors
-        """
         self.neighbors: List[List[GO_POINT]] = []
         for point in range(self.maxpoint):
             if self.board[point] == BORDER:
@@ -75,36 +60,18 @@ class GoBoard(object):
     def pt(self, row, col):
         return coord_to_point(row, col, self.size)
 
-    def is_legal_old(self, point, color):
-        """
-        Check whether it is legal for color to play on point
-        This method tries to play the move on a temporary copy of the board.
-        This prevents the board from being modified by the move
-        """
-        board_copy = self.copy()
-        can_play_move = board_copy.play_move(point, color)
-        return can_play_move
-
     def is_legal(self, point: GO_POINT, color: GO_COLOR) -> bool:
-        # Don't copy board
-        #if self.board[point] != EMPTY:
-        #    return False
-        # Play move
         self.board[point] = color
-
         neighbors = self.neighbors[point]
-        # Check for capturing
         for nb in neighbors:
             if self.board[nb] == opponent(color):
                 if self._detect_and_process_capture(nb):
                     self.board[point] = EMPTY
                     return False
-        # Check for suicide
         block = self._block_of(point)
         if not self._has_liberty(block):
             self.board[point] = EMPTY
             return False
-        # Undo move
         self.board[point] = EMPTY
         return True
 
@@ -118,26 +85,6 @@ class GoBoard(object):
         for row in range(1, self.size + 1):
             start = self.row_start(row)
             board[start : start + self.size] = EMPTY
-
-    def is_eye(self, point, color):
-        if not self._is_surrounded(point, color):
-            return False
-        opp_color = opponent(color)
-        false_count = 0
-        at_edge = 0
-        for d in self._diag_neighbors(point):
-            if self.board[d] == BORDER:
-                at_edge = 1
-            elif self.board[d] == opp_color:
-                false_count += 1
-        return false_count <= 1 - at_edge
-
-    def _is_surrounded(self, point, color):
-        for nb in self.neighbors[point]:
-            nb_color = self.board[nb]
-            if nb_color != BORDER and nb_color != color:
-                return False
-        return True
 
     def _has_liberty(self, block: np.ndarray) -> bool:
         for stone in where1d(block):
@@ -164,20 +111,10 @@ class GoBoard(object):
         return marker
 
     def _detect_and_process_capture(self, nb_point):
-        """
-        Check whether opponent block on nb_point is captured.
-        Return a boolean
-        True: The block is captured
-        False: The block is not captured
-        """
         opp_block = self._block_of(nb_point)
         return not self._has_liberty(opp_block)
 
     def play_move(self, point, color):
-        """
-        Play a move of color on point
-        Returns boolean: whether move was legal
-        """
         if point == PASS:
             return False
         elif self.board[point] != EMPTY:
@@ -202,7 +139,6 @@ class GoBoard(object):
         return True
 
     def neighbors_of_color(self, point, color):
-        """ List of neighbors of point of given color """
         nbc = []
         for nb in self.neighbors[point]:
             if self.get_color(nb) == color:
